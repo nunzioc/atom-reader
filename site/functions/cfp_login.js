@@ -1,0 +1,38 @@
+import { sha256, getCookieKeyValue } from "./utils";
+
+/**
+ * Max age of the auth cookie in seconds.
+ * Default: 1 week.
+ */
+export const CFP_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+
+export async function onRequestPost(context) {
+	const { request, env } = context;
+	const body = await request.formData();
+	const { password } = Object.fromEntries(body);
+	const hashedPassword = await sha256(password.toString());
+	const hashedCfpPassword = await sha256(env.CFP_PASSWORD);
+
+	if (hashedPassword === hashedCfpPassword) {
+		// Valid password. Redirect to home page and set cookie with auth hash.
+		const cookieKeyValue = await getCookieKeyValue(env.CFP_PASSWORD);
+
+		return new Response("", {
+			status: 302,
+			headers: {
+				"Set-Cookie": `${cookieKeyValue}; Max-Age=${CFP_COOKIE_MAX_AGE}; Path=/; HttpOnly; Secure`,
+				"Cache-Control": "no-cache",
+				Location: "/",
+			},
+		});
+	} else {
+		// Invalid password. Redirect to login page with error.
+		return new Response("", {
+			status: 302,
+			headers: {
+				"Cache-Control": "no-cache",
+				Location: "/?error=1",
+			},
+		});
+	}
+}
