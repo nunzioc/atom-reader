@@ -23,6 +23,7 @@ export async function onRequest(context) {
 		// Continue to next middleware.
 		return await next();
 	} else {
+		return Response.redirect("login", 301);
 		// No cookie or incorrect hash in cookie. Redirect to login.
 		return new Response(getTemplate({ withError: error === "1" }), {
 			headers: {
